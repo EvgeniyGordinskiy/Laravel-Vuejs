@@ -1,21 +1,18 @@
-
-/**
- * First we will load all of this project's JavaScript dependencies which
- * includes Vue and other libraries. It is a great starting point when
- * building robust, powerful web applications using Vue and Laravel.
+/* ============
+ * Vue
+ * ============
+ *
+ * Vue.js is a library for building interactive web interfaces.
+ * It provides data-reactive components with a simple and flexible API.
+ *
+ * http://rc.vuejs.org/guide/
  */
-
-require('./bootstrap');
-
 import Vue from 'vue';
-
-/**
- * Next, we will create a fresh Vue application instance and attach it to
- * the page. Then, you may begin adding components to this application
- * or customize the JavaScript scaffolding to fit your unique needs.
- */
 
 // eslint-disable-next-line
 import App from './App.vue';
+
+require('./bootstrap');
+
 // eslint-disable-next-line
 new Vue(App).$mount('#app');

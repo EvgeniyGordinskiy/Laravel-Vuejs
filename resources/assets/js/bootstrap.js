@@ -1,55 +1,113 @@
+/* ============
+ * Bootstrap File
+ * ============
+ *
+ * Will configure and bootstrap the application
+ */
 
-window._ = require('lodash');
+
+/* ============
+ * Vue
+ * ============
+ *
+ * Vue.js is a library for building interactive web interfaces.
+ * It provides data-reactive components with a simple and flexible API.
+ *
+ * http://rc.vuejs.org/guide/
+ */
 import Vue from 'vue';
+import 'element-ui/lib/theme-default/index.css';
 
-/**
- * We'll load jQuery and the Bootstrap jQuery plugin which provides support
- * for JavaScript based Bootstrap features such as modals and tabs. This
- * code may be modified to fit the specific needs of your application.
+
+/* ============
+ * Axios
+ * ============
+ *
+ * Promise based HTTP client for the browser and node.js.
+ * Because Vue Resource has been retired, Axios will now been used
+ * to perform AJAX-requests.
+ *
+ * https://github.com/mzabriskie/axios
  */
+import Axios from 'axios';
+// eslint-disable-next-line
+//  import authService from './app/services/auth';
+const logoutErrors = [
+  40102, // No token provided
+  40103, // Invalid token
+];
 
-try {
-    require('bootstrap-sass');
-} catch (e) {}
+Axios.defaults.baseURL = process.env.API_LOCATION;
+Axios.defaults.headers.common.Accept = 'application/json';
+Axios.interceptors.response.use(
+    response => response,
+    (error) => {
+        /**
+         * If response is unauthorized and it is not a request retry from auth service.
+         */
+      if (error.response.status === 401 && error.response.request.responseURL.indexOf('retry=1') === -1) {
+        const errorCode = error.response.data.error.code;
+          /**
+           * If error should log user out.
+           */
+        if (logoutErrors.indexOf(errorCode) >= 0) {
+          //  authService.logout();
+          return Promise.reject(error);
+        }
 
-/**
- * We'll load the axios HTTP library which allows us to easily issue requests
- * to our Laravel back-end. This library automatically handles sending the
- * CSRF token as a header based on the value of the "XSRF" token cookie.
+          /**
+          * If token is expired, try to refresh it and retry failed ajax.
+          */
+        if (errorCode === 40104) {
+         // return authService.token.getRefreshedToken(error.response);
+        }
+
+          /**
+          * if email is no verified.
+          */
+        if (errorCode === 40113) {
+          Vue.router.push({
+            name: 'dashboard',
+          });
+        }
+
+        /**
+        * If user does not have module.
+        */
+        if (errorCode === 40112) {
+          Vue.router.push({
+            name: 'dashboard',
+          });
+        }
+      }
+      return Promise.reject(error);
+    });
+Axios.interceptors.request.use((config) => {
+  if (localStorage.getItem('id_token')) {
+        // eslint-disable-next-line
+        config.headers.Authorization = `Bearer ${localStorage.getItem('id_token')}`;
+  }
+  return config;
+}, error => Promise.reject(error));
+Vue.$http = Axios;
+
+/* ============
+ * Styling
+ * ============
+ *
+ * Require the application styling.
+ * Stylus is used for this boilerplate.
+ *
+ * If you don't want to use Stylus, that's fine!
+ * Replace the stylus directory with the CSS preprocessor you want.
+ * Require the entry point here & install the webpack loader.
+ *
+ * It's that easy...
+ *
+ * http://stylus-lang.com/
  */
+require('./assets/stylus/app.styl');
 
-window.axios = require('axios');
-
-window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
-
-/**
- * Next we will register the CSRF Token as a common header with Axios so that
- * all outgoing HTTP requests automatically have it attached. This is just
- * a simple convenience so we don't have to attach every token manually.
- */
-
-// let token = document.head.querySelector('meta[name="csrf-token"]');
-//
-// if (token) {
-//     window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
-// } else {
-//     console.error('CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token');
-// }
-
-/**
- * Echo exposes an expressive API for subscribing to channels and listening
- * for events that are broadcast by Laravel. Echo and event broadcasting
- * allows your team to easily build robust real-time web applications.
- */
-
-// import Echo from 'laravel-echo'
-
-// window.Pusher = require('pusher-js');
-
-// window.Echo = new Echo({
-//     broadcaster: 'pusher',
-//     key: 'your-pusher-key'
-// });
 /* ============
  * Vuex Router Sync
  * ============
@@ -63,8 +121,8 @@ import VuexRouterSync from 'vuex-router-sync';
 // eslint-disable-next-line
 import store from './app/store';
 
-// store.dispatch('checkAuthentication');
-// store.dispatch('getAccount', {});
+store.dispatch('checkAuthentication');
+store.dispatch('getAccount', {});
 
 /* ============
  * Vue Router
@@ -80,17 +138,17 @@ import VueRouter from 'vue-router';
 // eslint-disable-next-line
 import routes from './app/routes';
 // eslint-disable-next-line
-// import routeMidlleware from './app/route-middleware';
+import routeMidlleware from './app/route-middleware';
 
 Vue.use(VueRouter);
 
 export const router = new VueRouter({
-    routes,
+  routes,
 });
 
-// router.beforeEach(routeMidlleware.beforeEach);
+router.beforeEach(routeMidlleware.beforeEach);
 
-VuexRouterSync.sync(store,router);
+VuexRouterSync.sync(store, router);
 
 Vue.router = router;
 
@@ -108,5 +166,5 @@ import ElementUI from 'element-ui';
 Vue.use(ElementUI);
 
 export default {
-    router,
+  router,
 };

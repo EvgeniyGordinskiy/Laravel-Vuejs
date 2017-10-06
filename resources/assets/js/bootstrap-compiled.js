@@ -5,9 +5,19 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.router = undefined;
 
+var _promise = require('babel-runtime/core-js/promise');
+
+var _promise2 = _interopRequireDefault(_promise);
+
 var _vue = require('vue');
 
 var _vue2 = _interopRequireDefault(_vue);
+
+require('element-ui/lib/theme-default/index.css');
+
+var _axios = require('axios');
+
+var _axios2 = _interopRequireDefault(_axios);
 
 var _vuexRouterSync = require('vuex-router-sync');
 
@@ -25,63 +35,122 @@ var _routes = require('./app/routes');
 
 var _routes2 = _interopRequireDefault(_routes);
 
+var _routeMiddleware = require('./app/route-middleware');
+
+var _routeMiddleware2 = _interopRequireDefault(_routeMiddleware);
+
 var _elementUi = require('element-ui');
 
 var _elementUi2 = _interopRequireDefault(_elementUi);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-window._ = require('lodash');
+// eslint-disable-next-line
+//  import authService from './app/services/auth';
+var logoutErrors = [40102, // No token provided
+40103];
 
-
-/**
- * We'll load jQuery and the Bootstrap jQuery plugin which provides support
- * for JavaScript based Bootstrap features such as modals and tabs. This
- * code may be modified to fit the specific needs of your application.
+/* ============
+ * Axios
+ * ============
+ *
+ * Promise based HTTP client for the browser and node.js.
+ * Because Vue Resource has been retired, Axios will now been used
+ * to perform AJAX-requests.
+ *
+ * https://github.com/mzabriskie/axios
+ */
+/* ============
+ * Bootstrap File
+ * ============
+ *
+ * Will configure and bootstrap the application
  */
 
-try {
-  require('bootstrap-sass');
-} catch (e) {}
-
-/**
- * We'll load the axios HTTP library which allows us to easily issue requests
- * to our Laravel back-end. This library automatically handles sending the
- * CSRF token as a header based on the value of the "XSRF" token cookie.
+/* ============
+ * Vue
+ * ============
+ *
+ * Vue.js is a library for building interactive web interfaces.
+ * It provides data-reactive components with a simple and flexible API.
+ *
+ * http://rc.vuejs.org/guide/
  */
 
-window.axios = require('axios');
 
-window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+_axios2.default.defaults.baseURL = process.env.API_LOCATION;
+_axios2.default.defaults.headers.common.Accept = 'application/json';
+_axios2.default.interceptors.response.use(function (response) {
+  return response;
+}, function (error) {
+  /**
+   * If response is unauthorized and it is not a request retry from auth service.
+   */
+  if (error.response.status === 401 && error.response.request.responseURL.indexOf('retry=1') === -1) {
+    var errorCode = error.response.data.error.code;
+    /**
+     * If error should log user out.
+     */
+    if (logoutErrors.indexOf(errorCode) >= 0) {
+      //  authService.logout();
+      return _promise2.default.reject(error);
+    }
 
-/**
- * Next we will register the CSRF Token as a common header with Axios so that
- * all outgoing HTTP requests automatically have it attached. This is just
- * a simple convenience so we don't have to attach every token manually.
+    /**
+    * If token is expired, try to refresh it and retry failed ajax.
+    */
+    if (errorCode === 40104) {}
+    // return authService.token.getRefreshedToken(error.response);
+
+
+    /**
+    * if email is no verified.
+    */
+    if (errorCode === 40113) {
+      _vue2.default.router.push({
+        name: 'dashboard'
+      });
+    }
+
+    /**
+    * If user does not have module.
+    */
+    if (errorCode === 40112) {
+      _vue2.default.router.push({
+        name: 'dashboard'
+      });
+    }
+  }
+  return _promise2.default.reject(error);
+});
+_axios2.default.interceptors.request.use(function (config) {
+  if (localStorage.getItem('id_token')) {
+    // eslint-disable-next-line
+    config.headers.Authorization = 'Bearer ' + localStorage.getItem('id_token');
+  }
+  return config;
+}, function (error) {
+  return _promise2.default.reject(error);
+});
+_vue2.default.$http = _axios2.default;
+
+/* ============
+ * Styling
+ * ============
+ *
+ * Require the application styling.
+ * Stylus is used for this boilerplate.
+ *
+ * If you don't want to use Stylus, that's fine!
+ * Replace the stylus directory with the CSS preprocessor you want.
+ * Require the entry point here & install the webpack loader.
+ *
+ * It's that easy...
+ *
+ * http://stylus-lang.com/
  */
+require('./assets/stylus/app.styl');
 
-// let token = document.head.querySelector('meta[name="csrf-token"]');
-//
-// if (token) {
-//     window.axios.defaults.headers.common['X-CSRF-TOKEN'] = token.content;
-// } else {
-//     console.error('CSRF token not found: https://laravel.com/docs/csrf#csrf-x-csrf-token');
-// }
-
-/**
- * Echo exposes an expressive API for subscribing to channels and listening
- * for events that are broadcast by Laravel. Echo and event broadcasting
- * allows your team to easily build robust real-time web applications.
- */
-
-// import Echo from 'laravel-echo'
-
-// window.Pusher = require('pusher-js');
-
-// window.Echo = new Echo({
-//     broadcaster: 'pusher',
-//     key: 'your-pusher-key'
-// });
 /* ============
  * Vuex Router Sync
  * ============
@@ -95,8 +164,8 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 // eslint-disable-next-line
 
 
-// store.dispatch('checkAuthentication');
-// store.dispatch('getAccount', {});
+_store2.default.dispatch('checkAuthentication');
+_store2.default.dispatch('getAccount', {});
 
 /* ============
  * Vue Router
@@ -112,7 +181,7 @@ window.axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
 // eslint-disable-next-line
 
 // eslint-disable-next-line
-// import routeMidlleware from './app/route-middleware';
+
 
 _vue2.default.use(_vueRouter2.default);
 
@@ -120,7 +189,7 @@ var router = exports.router = new _vueRouter2.default({
   routes: _routes2.default
 });
 
-// router.beforeEach(routeMidlleware.beforeEach);
+router.beforeEach(_routeMiddleware2.default.beforeEach);
 
 _vuexRouterSync2.default.sync(_store2.default, router);
 

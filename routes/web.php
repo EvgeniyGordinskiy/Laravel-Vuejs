@@ -11,10 +11,11 @@
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
 
-Auth::routes();
+Route::get('{path}', function () {
+    return view('index');
+})->where('path', '(.*)');
 
-Route::get('/home', 'HomeController@index')->name('home');
+Route::post('auth', ['as' => 'auth.authenticate', 'uses' => 'Auth\LoginController@login']);
+Route::post('auth/register', ['as' => 'auth.register', 'uses' => 'Auth\RegisterController@register']);
+Route::post('auth/logout', ['as' => 'auth.logout', 'uses' =>'Auth\LoginController@logout']);
